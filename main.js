@@ -50,12 +50,6 @@ function sumOfItemsQtyAndCost() {
   return (inputTotalElements.innerHTML = qtyElements * costElements);
 }
 
-function calculateDiscount() {
-  subtotalResult.innerHTML = inputTotalElements.innerHTML;
-  discountResult = subtotalResult.innerHTML / 100;
-
-}
-
 function createItemSheet() {
   const newInvoiceList = {
     qtyElem: inpQtyElements.value,
@@ -71,10 +65,11 @@ function createItemSheet() {
 
 function displayMessages() {
   let displayMessage = "";
-  invoiceList.forEach(function (item) {
+  invoiceList.forEach(function (item, index) {
     displayMessage += `
       <tr
     class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100"
+    for="${index}"
       >
     <td
     class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
@@ -99,5 +94,6 @@ function displayMessages() {
     </tr>
       `;
     tableItems.innerHTML = displayMessage;
+    subtotalResult.innerHTML = item.totalElem * item.totalElem;
   });
 }
