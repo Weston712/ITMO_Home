@@ -16,6 +16,9 @@ const inputTotalElements = document.getElementById("inputTotalElements");
 const tableItems = document.getElementById("tableItems");
 const inpItemTitle = document.getElementById("inpItemTitle");
 const inpDescription = document.getElementById("inpDescription");
+const subtotalResult = document.getElementById("subtotalResult");
+const discountResult = document.getElementById("discountResult");
+const totalResult = document.getElementById("totalResult");
 
 inpDocumentNumber.addEventListener("keyup", inpDocumentNumberVerification);
 inpQtyElements.addEventListener("keyup", sumOfItemsQtyAndCost);
@@ -31,7 +34,7 @@ function clocePopupContainer() {
   popupContainer.style.display = "none";
 }
 
-function inpDocumentNumberVerification(event) {
+function inpDocumentNumberVerification() {
   const invoiceDocumentNumber = inpDocumentNumber.value;
   const checkingForNumber = invoiceDocumentNumber && !Number.isNaN(invoiceDocumentNumber);
   if (checkingForNumber) {
@@ -47,6 +50,12 @@ function sumOfItemsQtyAndCost() {
   return (inputTotalElements.innerHTML = qtyElements * costElements);
 }
 
+function calculateDiscount() {
+  subtotalResult.innerHTML = inputTotalElements.innerHTML;
+  discountResult = subtotalResult.innerHTML / 100;
+
+}
+
 function createItemSheet() {
   const newInvoiceList = {
     qtyElem: inpQtyElements.value,
@@ -57,6 +66,7 @@ function createItemSheet() {
   };
   invoiceList.push(newInvoiceList);
   displayMessages();
+  calculateDiscount();
 }
 
 function displayMessages() {
@@ -67,9 +77,9 @@ function displayMessages() {
     class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100"
       >
     <td
-    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"
+    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
     >
-    ${item.inpTitle} ${item.inpDescrip}
+    ${item.inpTitle} <span class="text-gray-500"><br>${item.inpDescrip}</span>
     </td>
     <td
     class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
