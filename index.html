@@ -8,12 +8,12 @@
     <title>Vite App</title>
   </head>
   <body class="bg-slate-300 font-sans font-normal">
-    <div class="bg-white mx-auto w-[595px] h-[932px]">
+    <div class="bg-white relative mx-auto w-[595px] h-[932px]">
       <section
         class="absolute top-0 w-[595px] h-[245px] hidden"
         id="popupContainer"
       >
-        <div class="absolute top-0 h-full w-full bg-gray-500">
+        <div class="absolute top-0 h-full w-full bg-gray-500" id="popupBackgroundBlocker">
           <div class="relative h-104 bg-white px-12 py-6 flex flex-col">
             <header class="flex flex-row justify-between mt-1">
               <button
@@ -32,7 +32,6 @@
                 <label for="">Qty:</label>
                 <input
                   class="w-16 border-b-2 outline-none"
-                  pattern="[0-9]{2}"
                   id="inputQtyElements"
                   type="text"
                 />
@@ -41,7 +40,6 @@
                 <label for="">Cost:</label>
                 <input
                   class="w-16 border-b-2 outline-none"
-                  pattern="[0-9]{2}"
                   required
                   id="inputCostElements"
                   type="text"
@@ -52,7 +50,7 @@
                 <span class="text-lg" id="inputTotalElements"></span>
               </div>
               <button
-                class="px-4 bg-black text-white rounded-2 rounded-lg disabled:text-gray-200"
+                class="px-4 bg-black text-white rounded-2 rounded-lg  enabled:hover:bg-black disabled:opacity-30 disabled:text-gray-500"
                 id="btnCreateItem"
               >
                 Create

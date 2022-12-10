@@ -5,7 +5,7 @@ const btnCreateItem = document.getElementById("btnCreateItem");
 
 btnCreateItem.addEventListener("click", createItemSheet);
 btnCloceContainer.addEventListener("click", clocePopupContainer);
-btnOpenContainer.addEventListener("click", openPopupContainer);
+btnOpenContainer.addEventListener("click", () => openPopupContainer());
 
 //  input
 const popupContainer = document.getElementById("popupContainer");
@@ -19,16 +19,67 @@ const inpDescription = document.getElementById("inpDescription");
 const subtotalResult = document.getElementById("subtotalResult");
 const discountResult = document.getElementById("discountResult");
 const totalResult = document.getElementById("totalResult");
+const popupBackgroundBlocker = document.getElementById("popupBackgroundBlocker");
 
+// tableItems.addEventListener("click", updateTableItems);
+// popupBackgroundBlocker.addEventListener("click", popupBlocker);
 inpDocumentNumber.addEventListener("keyup", inpDocumentNumberVerification);
-inpQtyElements.addEventListener("keyup", sumOfItemsQtyAndCost);
-inputCostElements.addEventListener("keyup", sumOfItemsQtyAndCost);
 
-const invoiceList = [];
+inpQtyElements.addEventListener("keyup", (event) => { 
+  console.log('> inpQtyElements:', event.currentTarget.value);
+  currentWorkItem.qty = parseInt(event.currentTarget.value);
+  inputTotalElements.innerHTML = currentWorkItem.total;
+  checkCanCreate();
+});
+inpItemTitle.addEventListener("keyup", (event) => { 
+  console.log('> inpItemTitle:', event.currentTarget.value);
+  currentWorkItem.title = event.currentTarget.value;
+  checkCanCreate();
+});
+inputCostElements.addEventListener("keyup", (event) => { 
+  console.log('> inputCostElements:', event.currentTarget.value);
+  currentWorkItem.cost = parseInt(event.currentTarget.value);
+  inputTotalElements.innerHTML = currentWorkItem.total;
+  checkCanCreate();
+});
 
-function openPopupContainer() {
-  return (popupContainer.style.display = "block");
+const checkCanCreate = () => {
+  const result = !(currentWorkItem.title.length > 0 && currentWorkItem.total > 0);
+  console.log('> checkCanCreate:', result);
+  btnCreateItem.disabled = result;
 }
+
+class InvoiceVO {
+  constructor() {
+    this.id = '';
+    this.items = [];
+    this.discount = 0;
+    this.iban = '';
+  }
+}
+
+class WorkItemVO {
+  constructor(title = '', description = '', qty, cost) {
+    this.title = title;
+    this.description = description;
+    this.qty = qty;
+    this.cost = cost;
+  }
+  get total() { return (this.cost || 0) * (this.qty || 0); }
+}
+
+const invoiceVO = JSON.parse(localStorage.getItem('invoice')) || new InvoiceVO();
+let currentWorkItem = null;
+
+displayMessages();
+
+function openPopupContainer(index) {
+  currentWorkItem = index ? invoiceVO.items[index] : new WorkItemVO();
+  btnCreateItem.disabled = true;
+  popupContainer.style.display = "block";
+}
+
+// function popupBlocker() {}
 
 function clocePopupContainer() {
   popupContainer.style.display = "none";
@@ -45,55 +96,75 @@ function inpDocumentNumberVerification() {
 }
 
 function sumOfItemsQtyAndCost() {
-  const qtyElements = inpQtyElements.value;
-  const costElements = inputCostElements.value;
-  return (inputTotalElements.innerHTML = qtyElements * costElements);
+  const canCalculateTotal = currentWorkItem.qty && currentWorkItem.cost;
+  currentWorkItem.total = canCalculateTotal ? (currentWorkItem.qty * currentWorkItem.cost) : 0;
+  inputTotalElements.innerHTML = currentWorkItem.total;
 }
 
 function createItemSheet() {
-  const newInvoiceList = {
-    qtyElem: inpQtyElements.value,
-    costElem: inputCostElements.value,
-    totalElem: inputTotalElements.innerHTML,
-    inpTitle: inpItemTitle.value,
-    inpDescrip: inpDescription.value,
-  };
-  invoiceList.push(newInvoiceList);
+  invoiceVO.items.push(currentWorkItem);
+  currentWorkItem = null;
   displayMessages();
-  calculateDiscount();
+  saveInvoice();
+}
+
+function saveInvoice() {
+  localStorage.setItem('invoice', JSON.stringify(invoiceVO));
 }
 
 function displayMessages() {
   let displayMessage = "";
-  invoiceList.forEach(function (item, index) {
+  invoiceVO.items.forEach((workItemVO, index) => {
     displayMessage += `
       <tr
     class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100"
-    for="${index}"
+    for="item_${index}"
       >
     <td
     class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
     >
-    ${item.inpTitle} <span class="text-gray-500"><br>${item.inpDescrip}</span>
+    ${workItemVO.title} <span class="text-gray-500"><br>${workItemVO.description}</span>
     </td>
     <td
     class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
-    ${item.qtyElem}
+    ${workItemVO.qty}
     </td>
     <td
     class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
-    ${item.costElem}
+    ${workItemVO.cost}
     </td>
     <td
     class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
-    $${item.totalElem}
+    $${workItemVO.total}
     </td>
     </tr>
       `;
-    tableItems.innerHTML = displayMessage;
-    subtotalResult.innerHTML = item.totalElem * item.totalElem;
+
+
+    // subtotalResult.innerHTML = invoiceVO.items.reduce(function (prev, curr) {
+    //   return prev + curr.total;
+    // }, 0);
   });
+  tableItems.innerHTML = displayMessage;
+}
+
+// function updateTableItems(event) {
+//   console.log(event.);
+// }
+
+function validationOnCreate() {
+  const qtyElem = inpQtyElements.value;
+  const costElem = inputCostElements.value;
+  // const totalElem = inputTotalElements.innerHTML;
+  const inpTitle = inpItemTitle.value;
+  const inpDescrip = inpDescription.value;
+  btnCreateItem.setAttribute("disabled", true);
+  if (qtyElem.length != 0 && costElem.length != 0 && inpTitle.length != 0 && inpDescrip.length != 0) {
+    return (btnCreateItem.disabled = false);
+  } else {
+    return (btnCreateItem.disabled = true);
+  }
 }
