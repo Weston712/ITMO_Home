@@ -21,65 +21,75 @@ const discountResult = document.getElementById("discountResult");
 const totalResult = document.getElementById("totalResult");
 const popupBackgroundBlocker = document.getElementById("popupBackgroundBlocker");
 
-// tableItems.addEventListener("click", updateTableItems);
-// popupBackgroundBlocker.addEventListener("click", popupBlocker);
-inpDocumentNumber.addEventListener("keyup", inpDocumentNumberVerification);
+inpDocumentNumber.addEventListener("keyup", () => inpDocumentNumberVerification());
 
-inpQtyElements.addEventListener("keyup", (event) => { 
-  console.log('> inpQtyElements:', event.currentTarget.value);
+inpQtyElements.addEventListener("keyup", (event) => {
+  console.log("> inpQtyElements:", event.currentTarget.value);
   currentWorkItem.qty = parseInt(event.currentTarget.value);
   inputTotalElements.innerHTML = currentWorkItem.total;
   checkCanCreate();
 });
-inpItemTitle.addEventListener("keyup", (event) => { 
-  console.log('> inpItemTitle:', event.currentTarget.value);
+inpItemTitle.addEventListener("keyup", (event) => {
+  console.log("> inpItemTitle:", event.currentTarget.value);
   currentWorkItem.title = event.currentTarget.value;
   checkCanCreate();
 });
-inputCostElements.addEventListener("keyup", (event) => { 
-  console.log('> inputCostElements:', event.currentTarget.value);
+inputCostElements.addEventListener("keyup", (event) => {
+  console.log("> inputCostElements:", event.currentTarget.value);
   currentWorkItem.cost = parseInt(event.currentTarget.value);
   inputTotalElements.innerHTML = currentWorkItem.total;
   checkCanCreate();
 });
 
+tableItems.addEventListener("click", (e) => {
+  const target = e.target.tableItems;
+  // console.log("click -> ", target, target.dataset.todoid);
+  if (target.dataset.todoid) {
+    openPopupContainer(target.dataset.todoid);
+  }
+});
+console.log(tableItems);
+
 const checkCanCreate = () => {
   const result = !(currentWorkItem.title.length > 0 && currentWorkItem.total > 0);
-  console.log('> checkCanCreate:', result);
+  console.log("> checkCanCreate:", result);
   btnCreateItem.disabled = result;
-}
+};
 
 class InvoiceVO {
   constructor() {
-    this.id = '';
+    this.id = "";
     this.items = [];
     this.discount = 0;
-    this.iban = '';
+    this.iban = "";
   }
 }
 
 class WorkItemVO {
-  constructor(title = '', description = '', qty, cost) {
+  constructor(title = "", description = "", qty, cost) {
+    this.id = null;
     this.title = title;
     this.description = description;
     this.qty = qty;
     this.cost = cost;
   }
-  get total() { return (this.cost || 0) * (this.qty || 0); }
+  get total() {
+    return (this.cost || 0) * (this.qty || 0);
+  }
 }
 
-const invoiceVO = JSON.parse(localStorage.getItem('invoice')) || new InvoiceVO();
+const invoiceVO = JSON.parse(localStorage.getItem("invoice")) || new InvoiceVO();
 let currentWorkItem = null;
 
 displayMessages();
 
 function openPopupContainer(index) {
-  currentWorkItem = index ? invoiceVO.items[index] : new WorkItemVO();
+  currentWorkItem = index ? Object.create({}, invoiceVO.items[parseInt(index)]) : new WorkItemVO();
+  console.log("> openPopupContainer -> currentWorkItem", currentWorkItem);
   btnCreateItem.disabled = true;
   popupContainer.style.display = "block";
+  inpQtyElements.value = currentWorkItem.qty;
 }
-
-// function popupBlocker() {}
 
 function clocePopupContainer() {
   popupContainer.style.display = "none";
@@ -97,74 +107,61 @@ function inpDocumentNumberVerification() {
 
 function sumOfItemsQtyAndCost() {
   const canCalculateTotal = currentWorkItem.qty && currentWorkItem.cost;
-  currentWorkItem.total = canCalculateTotal ? (currentWorkItem.qty * currentWorkItem.cost) : 0;
+  currentWorkItem.total = canCalculateTotal ? currentWorkItem.qty * currentWorkItem.cost : 0;
   inputTotalElements.innerHTML = currentWorkItem.total;
 }
 
 function createItemSheet() {
-  invoiceVO.items.push(currentWorkItem);
+  if (currentWorkItem.id == null) {
+    currentWorkItem.id = Date.now();
+    invoiceVO.items.push(currentWorkItem);
+  } else {
+    const index = invoiceVO.items.findIndex((vo) => vo.id === currentWorkItem.id);
+    invoiceVO.items.splice(index, 1, currentWorkItem);
+  }
+
   currentWorkItem = null;
   displayMessages();
   saveInvoice();
 }
 
 function saveInvoice() {
-  localStorage.setItem('invoice', JSON.stringify(invoiceVO));
+  localStorage.setItem("invoice", JSON.stringify(invoiceVO));
 }
 
 function displayMessages() {
   let displayMessage = "";
   invoiceVO.items.forEach((workItemVO, index) => {
     displayMessage += `
-      <tr
+      <tr data-todoid="${workItemVO.id}"
     class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100"
     for="item_${index}"
       >
-    <td
-    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
+    <td data-todoid="${index}"
+    class="pointer-events-none px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800"
     >
     ${workItemVO.title} <span class="text-gray-500"><br>${workItemVO.description}</span>
     </td>
     <td
-    class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
+    class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     ${workItemVO.qty}
     </td>
     <td
-    class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
+    class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     ${workItemVO.cost}
     </td>
     <td
-    class="text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
+    class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     $${workItemVO.total}
     </td>
     </tr>
       `;
-
-
     // subtotalResult.innerHTML = invoiceVO.items.reduce(function (prev, curr) {
     //   return prev + curr.total;
     // }, 0);
   });
   tableItems.innerHTML = displayMessage;
-}
-
-// function updateTableItems(event) {
-//   console.log(event.);
-// }
-
-function validationOnCreate() {
-  const qtyElem = inpQtyElements.value;
-  const costElem = inputCostElements.value;
-  // const totalElem = inputTotalElements.innerHTML;
-  const inpTitle = inpItemTitle.value;
-  const inpDescrip = inpDescription.value;
-  btnCreateItem.setAttribute("disabled", true);
-  if (qtyElem.length != 0 && costElem.length != 0 && inpTitle.length != 0 && inpDescrip.length != 0) {
-    return (btnCreateItem.disabled = false);
-  } else {
-    return (btnCreateItem.disabled = true);
-  }
 }
