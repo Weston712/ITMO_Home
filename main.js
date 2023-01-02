@@ -1,15 +1,18 @@
 // button
 const btnOpenContainer = document.getElementById("btnAddItem");
-const btnCloceContainer = document.getElementById("btnCloceContainer");
+const btnCloseContainer = document.getElementById("btnCloseContainer");
 const btnCreateItem = document.getElementById("btnCreateItem");
+const btnDeleteItemList = document.getElementById("btnDeleteItemList");
 
 btnCreateItem.addEventListener("click", createItemSheet);
-btnCloceContainer.addEventListener("click", clocePopupContainer);
+btnCloseContainer.addEventListener("click", closePopupContainer);
 btnOpenContainer.addEventListener("click", () => openPopupContainer());
 
 //  input
+
+const inpIBAN = document.getElementById("inpIBAN");
 const popupContainer = document.getElementById("popupContainer");
-const inpDocumentNumber = document.getElementById("documentNumber");
+const inpDocumentNumber = document.getElementById("documentNumber")
 const inpQtyElements = document.getElementById("inputQtyElements");
 const inputCostElements = document.getElementById("inputCostElements");
 const inputTotalElements = document.getElementById("inputTotalElements");
@@ -19,13 +22,25 @@ const inpDescription = document.getElementById("inpDescription");
 const subtotalResult = document.getElementById("subtotalResult");
 const discountResult = document.getElementById("discountResult");
 const totalResult = document.getElementById("totalResult");
-const popupBackgroundBlocker = document.getElementById("popupBackgroundBlocker");
+const discountInput = document.getElementById("discountInput");
 
-inpDocumentNumber.addEventListener("keyup", () => inpDocumentNumberVerification());
+const textAdd = document.getElementById("textAdd");
 
+
+
+discountInput.addEventListener("keyup", () => {
+  let discount = parseInt(discountInput.value);
+  if (discount > 100) {
+    discount = 100;
+    discountInput.value = discount;
+  }
+  invoiceVO.discount = discount;
+  calculateTotal()
+});
+// Ввод данных
 inpQtyElements.addEventListener("keyup", (event) => {
   console.log("> inpQtyElements:", event.currentTarget.value);
-  currentWorkItem.qty = parseInt(event.currentTarget.value);
+  currentWorkItem.qty = parseInt(event.currentTarget.value) || 0;
   inputTotalElements.innerHTML = currentWorkItem.total;
   checkCanCreate();
 });
@@ -36,82 +51,121 @@ inpItemTitle.addEventListener("keyup", (event) => {
 });
 inputCostElements.addEventListener("keyup", (event) => {
   console.log("> inputCostElements:", event.currentTarget.value);
-  currentWorkItem.cost = parseInt(event.currentTarget.value);
+  currentWorkItem.cost = parseInt(event.currentTarget.value) || 0;
   inputTotalElements.innerHTML = currentWorkItem.total;
   checkCanCreate();
 });
 
+inpDescription.addEventListener("keyup", (event) => {
+  console.log("> inpDescription:", event.currentTarget.value);
+  currentWorkItem.description = event.currentTarget.value;
+  checkCanCreate();
+});
+
 tableItems.addEventListener("click", (e) => {
-  const target = e.target.tableItems;
-  // console.log("click -> ", target, target.dataset.todoid);
+  const target = e.target;
+  console.log("click -> ", target, target.dataset.todoid);
   if (target.dataset.todoid) {
     openPopupContainer(target.dataset.todoid);
+    console.log(tableItems);
   }
 });
-console.log(tableItems);
+
 
 const checkCanCreate = () => {
-  const result = !(currentWorkItem.title.length > 0 && currentWorkItem.total > 0);
-  console.log("> checkCanCreate:", result);
-  btnCreateItem.disabled = result;
+  const originalWorkItem = invoiceVO.items.find((vo) => vo.id === currentWorkItem.id)
+  const isEditing = !!currentWorkItem.id;
+  const requiredCondition = currentWorkItem.title.length > 0 && currentWorkItem.total > 0;
+  let canBeEnabled = requiredCondition;
+  if (isEditing) {
+    canBeEnabled &= originalWorkItem.title !== currentWorkItem.title ||
+      originalWorkItem.qty !== currentWorkItem.qty ||
+      originalWorkItem.cost !== currentWorkItem.cost ||
+      originalWorkItem.description !== currentWorkItem.description;
+  }
+  console.log("> checkCanCreate:", { isEditing, canBeEnabled, requiredCondition, originalWorkItem, currentWorkItem });
+  btnCreateItem.disabled = !canBeEnabled;
 };
-
+// структура списка
 class InvoiceVO {
   constructor() {
     this.id = "";
     this.items = [];
     this.discount = 0;
     this.iban = "";
+
   }
 }
 
 class WorkItemVO {
-  constructor(title = "", description = "", qty, cost) {
-    this.id = null;
+  constructor({id, title = "", description = "", qty = 0, cost = 0}) {
+    this.id = id;
     this.title = title;
     this.description = description;
     this.qty = qty;
     this.cost = cost;
   }
   get total() {
-    return (this.cost || 0) * (this.qty || 0);
+    return (this.qty || 0) * (this.cost || 0);
   }
 }
 
 const invoiceVO = JSON.parse(localStorage.getItem("invoice")) || new InvoiceVO();
+invoiceVO.items = invoiceVO.items.map((raw) => new WorkItemVO(raw))
+inpDocumentNumber.value = invoiceVO.id;
+inpIBAN.value = invoiceVO.iban;
 let currentWorkItem = null;
 
 displayMessages();
+calculateTotal();
 
+// открытие контейнера
 function openPopupContainer(index) {
-  currentWorkItem = index ? Object.create({}, invoiceVO.items[parseInt(index)]) : new WorkItemVO();
+  console.log('> openPopupContainer:',index);
+  const isEdit = !!index
+  const copy = isEdit ? { ...invoiceVO.items[parseInt(index)] } : {};
+  currentWorkItem = new WorkItemVO(copy);
   console.log("> openPopupContainer -> currentWorkItem", currentWorkItem);
   btnCreateItem.disabled = true;
+  btnCreateItem.innerText = isEdit ? "Save" : "Create";
+  textAdd.innerText = isEdit ? "Update" : "Add";
   popupContainer.style.display = "block";
-  inpQtyElements.value = currentWorkItem.qty;
-}
 
-function clocePopupContainer() {
-  popupContainer.style.display = "none";
-}
-
-function inpDocumentNumberVerification() {
-  const invoiceDocumentNumber = inpDocumentNumber.value;
-  const checkingForNumber = invoiceDocumentNumber && !Number.isNaN(invoiceDocumentNumber);
-  if (checkingForNumber) {
-    return true;
-  } else {
-    alert("Enter the number");
-  }
-}
-
-function sumOfItemsQtyAndCost() {
-  const canCalculateTotal = currentWorkItem.qty && currentWorkItem.cost;
-  currentWorkItem.total = canCalculateTotal ? currentWorkItem.qty * currentWorkItem.cost : 0;
+  inpQtyElements.value = currentWorkItem.qty || '';
+  inputCostElements.value = currentWorkItem.cost || '';
+  inpItemTitle.value = currentWorkItem.title;
+  inpDescription.value = currentWorkItem.description;
   inputTotalElements.innerHTML = currentWorkItem.total;
 }
+// закрытие контейнера
+function closePopupContainer() {
+  popupContainer.style.display = "none";
+}
+// Ввод номера документа
+inpDocumentNumber.addEventListener("keyup", (event) => {
+  console.log("> inpDocumentNumber:", event.currentTarget.value)
+  invoiceVO.id = inpDocumentNumber.value;
+    saveInvoice();
+})
+// ибан
+inpIBAN.addEventListener("keyup", (event) => {
+  console.log("> inpIBAN:", event.currentTarget.value)
+  invoiceVO.iban = inpIBAN.value;
+  saveInvoice();
+})
+
+// Удаление списка
+ btnDeleteItemList.addEventListener ('click',(e) =>{
+   console.log(e);
+   if (confirm("DELETE")) {
+     const index = invoiceVO.items.findIndex((vo) => vo.id === currentWorkItem.id)
+     invoiceVO.items.splice(index, 1);
+     closePopupRerenderSaveInvoice();
+   }
+ } )
 
 function createItemSheet() {
+  console.log("> createItemSheet", currentWorkItem);
   if (currentWorkItem.id == null) {
     currentWorkItem.id = Date.now();
     invoiceVO.items.push(currentWorkItem);
@@ -120,19 +174,27 @@ function createItemSheet() {
     invoiceVO.items.splice(index, 1, currentWorkItem);
   }
 
+  closePopupRerenderSaveInvoice();
+}
+
+function closePopupRerenderSaveInvoice() {
   currentWorkItem = null;
+  closePopupContainer();
   displayMessages();
+  calculateTotal();
   saveInvoice();
 }
 
 function saveInvoice() {
   localStorage.setItem("invoice", JSON.stringify(invoiceVO));
+  localStorage.setItem("inpDocumentNumber", JSON.stringify(inpDocumentNumber));
+
 }
 
 function displayMessages() {
-  let displayMessage = "";
+  let listItems = "";
   invoiceVO.items.forEach((workItemVO, index) => {
-    displayMessage += `
+    listItems += `
       <tr data-todoid="${workItemVO.id}"
     class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100"
     for="item_${index}"
@@ -142,26 +204,30 @@ function displayMessages() {
     >
     ${workItemVO.title} <span class="text-gray-500"><br>${workItemVO.description}</span>
     </td>
-    <td
+    <td data-todoid="${index}"
     class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     ${workItemVO.qty}
     </td>
-    <td
+    <td data-todoid="${index}"
     class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     ${workItemVO.cost}
     </td>
-    <td
+    <td data-todoid="${index}"
     class="pointer-events-none text-sm text-gray-900 font-light px-6 py-4 whitespace-nowrap"
     >
     $${workItemVO.total}
     </td>
     </tr>
       `;
-    // subtotalResult.innerHTML = invoiceVO.items.reduce(function (prev, curr) {
-    //   return prev + curr.total;
-    // }, 0);
   });
-  tableItems.innerHTML = displayMessage;
+  tableItems.innerHTML = listItems;
+}
+function calculateTotal(){
+  const total = invoiceVO.items.reduce((prev, curr) => (prev += curr.total, prev), 0);
+  const discount = (invoiceVO.discount || 0) / 100 * total;
+  discountResult.innerHTML = `${discount}`;
+  subtotalResult.innerHTML = `${total}`;
+  totalResult.innerHTML = `${total - discount}`;
 }

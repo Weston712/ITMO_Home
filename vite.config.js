@@ -1,11 +1,17 @@
-import { defineConfig } from "vite";
-import mkcert from "vite-plugin-mkcert";
-// https://vitejs.dev/config/
+// vite.config.js/** @type {import('vite').UserConfig} */
+import path from 'path';
+import { defineConfig } from 'vite';
+// import mkcert from 'vite-plugin-mkcert';
+
 export default defineConfig({
-  server: {
-    https: true,
-    host: "local.dev",
-    port: 8888,
+  // omit
+  plugins: [],
+  resolve: {
+    alias: {
+      '@/': `${path.resolve(__dirname, 'src')}/`,
+    },
   },
-  plugins: [mkcert()],
+  server: {
+    port: 8089, // cors: true,    // host: 'local.dev',    // https: true,
+  },
 });
